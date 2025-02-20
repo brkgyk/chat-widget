@@ -142,8 +142,8 @@
                     "X-Origin-Domain": currentDomain 
                 },
                 body: JSON.stringify({ message: userMessage }),
-                credentials: 'include', // This ensures cookies are sent with the request
-                mode: 'cors'  // Explicitly set CORS mode
+                credentials: 'omit',  // Change to 'omit' instead of 'include'
+                mode: 'cors'
             })
             .then(response => {
                 if (!response.ok) {
