@@ -13,7 +13,7 @@
         }
         
         // Default to the GitHub Codespace URL
-        return 'https://curly-adventure-q7447rx9g94jc94qr-8000.app.github.dev/chat';
+        return '/chat';
     }
     
     // Initialize the chat API endpoint
