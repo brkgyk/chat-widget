@@ -1,10 +1,10 @@
-/* /chat-widget.js */
+/* chat-widget.js */
 (function() {
     // Dynamically determine the endpoint URL
     function getApiEndpoint() {
         // Get the current script tag
         const scripts = document.getElementsByTagName('script');
-        const currentScript = scripts[scripts.length - 1]; // This works in most cases
+        const currentScript = scripts[scripts.length - 1]; 
         
         // Check if a data-api-url attribute is provided
         const dataApiUrl = currentScript.getAttribute('data-api-url');
@@ -12,13 +12,13 @@
             return dataApiUrl;
         }
         
-        // If script is served from the same domain as the chat API
-        // Just use relative path
-        return 'https://curly-adventure-q7447rx9g94jc94qr.github.dev/chat';
+        // Default to the GitHub Codespace URL
+        return 'https://curly-adventure-q7447rx9g94jc94qr-8000.app.github.dev/chat';
     }
     
     // Initialize the chat API endpoint
     const chatApiEndpoint = getApiEndpoint();
+    console.log("Chat API endpoint:", chatApiEndpoint);
     
     // Create chat icon
     let chatIcon = document.createElement("div");
@@ -74,7 +74,7 @@
         chatMessages.style.overflowY = "auto";
         chatMessages.style.padding = "10px";
         chatMessages.style.borderBottom = "1px solid #ddd";
-        chatMessages.innerHTML = "<div>Nasıl yardımcı olabiliriz?</div>";
+        chatMessages.innerHTML = "<div>How can we help you?</div>";
         chatWindow.appendChild(chatMessages);
 
         let chatInput = document.createElement("div");
@@ -118,24 +118,21 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
             // Get the current domain for tenant identification
-            const currentDomain = window.location.origin;
-            
-            // Determine the full API URL
-            const apiUrl = chatApiEndpoint.startsWith('http') 
-                ? chatApiEndpoint 
-                : window.location.origin + chatApiEndpoint;
+            const currentDomain = window.location.hostname;
+            console.log("Current domain:", currentDomain);
             
             // Display loading indicator
             const loadingId = `loading-${Date.now()}`;
             chatMessages.innerHTML += `<div id="${loadingId}" style="text-align: left; color: gray;">Thinking...</div>`;
             
-            fetch(apiUrl, {
+            fetch(chatApiEndpoint, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
                     "X-Origin-Domain": currentDomain 
                 },
-                body: JSON.stringify({ message: userMessage })
+                body: JSON.stringify({ message: userMessage }),
+                credentials: 'include' // This ensures cookies are sent with the request
             })
             .then(response => {
                 if (!response.ok) {
@@ -163,7 +160,7 @@
                     loadingElement.remove();
                 }
                 
-                chatMessages.innerHTML += `<div style="text-align: left; color: red;">Sorry, there was an error processing your request.</div>`;
+                chatMessages.innerHTML += `<div style="text-align: left; color: red;">Connection error. Please try again later. (${error.message})</div>`;
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             });
         }
