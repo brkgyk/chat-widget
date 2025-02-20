@@ -4,21 +4,23 @@
 function getApiEndpoint() {
     // Get the current script tag
     const scripts = document.getElementsByTagName('script');
-    const currentScript = scripts[scripts.length - 1];
+    const currentScript = scripts[scripts.length - 1]; 
     
-    // Check if a data-api-url attribute is provided
+    // Check if a data-api-url attribute is provided (highest priority)
     const dataApiUrl = currentScript.getAttribute('data-api-url');
     if (dataApiUrl) {
+        console.log("Using data-api-url:", dataApiUrl);
         return dataApiUrl;
     }
     
-    // For GitHub Codespace testing
-    const codespaceUrl = 'https://curly-adventure-q7447rx9g94jc94qr-8000.app.github.dev/chat';
+    // For local development
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:8000/chat';
+    }
     
-    // Default to the Codespace URL with port 8000
-    return codespaceUrl;
+    // Default to relative path (works when widget is loaded from same domain as backend)
+    return '/chat';
 }
-    
     // Initialize the chat API endpoint
     const chatApiEndpoint = getApiEndpoint();
     console.log("Chat API endpoint:", chatApiEndpoint);
