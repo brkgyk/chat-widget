@@ -4,7 +4,7 @@
 function getApiEndpoint() {
     // Get the current script tag
     const scripts = document.getElementsByTagName('script');
-    const currentScript = scripts[scripts.length - 1]; 
+    const currentScript = scripts[scripts.length - 1];
     
     // Check if a data-api-url attribute is provided
     const dataApiUrl = currentScript.getAttribute('data-api-url');
@@ -12,20 +12,11 @@ function getApiEndpoint() {
         return dataApiUrl;
     }
     
-    // For local development
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:8000/chat';
-    }
-    
     // For GitHub Codespace testing
-    const isCodespace = window.location.hostname.includes('.app.github.dev');
-    if (isCodespace) {
-        return `${window.location.origin}/chat`;
-    }
+    const codespaceUrl = 'https://curly-adventure-q7447rx9g94jc94qr-8000.app.github.dev/chat';
     
-    // For production use - point to your deployed backend
-    // This should be your public API endpoint
-    return 'https://curly-adventure-q7447rx9g94jc94qr.github.dev/chat';
+    // Default to the Codespace URL with port 8000
+    return codespaceUrl;
 }
     
     // Initialize the chat API endpoint
