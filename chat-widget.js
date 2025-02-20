@@ -1,20 +1,32 @@
 /* chat-widget.js */
 (function() {
     // Dynamically determine the endpoint URL
-    function getApiEndpoint() {
-        // Get the current script tag
-        const scripts = document.getElementsByTagName('script');
-        const currentScript = scripts[scripts.length - 1]; 
-        
-        // Check if a data-api-url attribute is provided
-        const dataApiUrl = currentScript.getAttribute('data-api-url');
-        if (dataApiUrl) {
-            return dataApiUrl;
-        }
-        
-        // Default to the GitHub Codespace URL
-        return '/chat';
+function getApiEndpoint() {
+    // Get the current script tag
+    const scripts = document.getElementsByTagName('script');
+    const currentScript = scripts[scripts.length - 1]; 
+    
+    // Check if a data-api-url attribute is provided
+    const dataApiUrl = currentScript.getAttribute('data-api-url');
+    if (dataApiUrl) {
+        return dataApiUrl;
     }
+    
+    // For local development
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:8000/chat';
+    }
+    
+    // For GitHub Codespace testing
+    const isCodespace = window.location.hostname.includes('.app.github.dev');
+    if (isCodespace) {
+        return `${window.location.origin}/chat`;
+    }
+    
+    // For production use - point to your deployed backend
+    // This should be your public API endpoint
+    return 'https://your-deployed-backend.com/chat';
+}
     
     // Initialize the chat API endpoint
     const chatApiEndpoint = getApiEndpoint();
