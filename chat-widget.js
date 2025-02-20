@@ -14,7 +14,7 @@
         
         // If script is served from the same domain as the chat API
         // Just use relative path
-        return '/chat';
+        return 'https://curly-adventure-q7447rx9g94jc94qr.github.dev//chat';
     }
     
     // Initialize the chat API endpoint
