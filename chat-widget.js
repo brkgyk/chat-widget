@@ -1,22 +1,27 @@
 /* chat-widget.js */
 (function() {
     // Dynamically determine the endpoint URL
-function getApiEndpoint() {
-    // Get the current script tag
-    const scripts = document.getElementsByTagName('script');
-    const currentScript = scripts[scripts.length - 1]; 
-    
-    // Check if a data-api-url attribute is provided (highest priority)
-    const dataApiUrl = currentScript.getAttribute('data-api-url');
-    if (dataApiUrl) {
-        console.log("Using data-api-url:", dataApiUrl);
-        return dataApiUrl;
-    }
-    
-    // For local development
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:8000/chat';
-    }
+    function getApiEndpoint() {
+        // Get the current script tag
+        const scripts = document.getElementsByTagName('script');
+        const currentScript = scripts[scripts.length - 1]; 
+        
+        // Check if a data-api-url attribute is provided (highest priority)
+        const dataApiUrl = currentScript.getAttribute('data-api-url');
+        if (dataApiUrl) {
+            console.log("Using data-api-url:", dataApiUrl);
+            return dataApiUrl;
+        }
+        
+        // For GitHub Codespaces
+        if (window.location.hostname.includes('github.dev')) {
+            return `https://${window.location.hostname}/chat`;
+        }
+        
+        // For local development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:8000/chat';
+        }
     
     // Default to relative path (works when widget is loaded from same domain as backend)
     return '/chat';
