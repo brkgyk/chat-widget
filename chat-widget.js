@@ -25,7 +25,7 @@ function getApiEndpoint() {
     
     // For production use - point to your deployed backend
     // This should be your public API endpoint
-    return 'https://your-deployed-backend.com/chat';
+    return 'https://curly-adventure-q7447rx9g94jc94qr.github.dev/chat';
 }
     
     // Initialize the chat API endpoint
