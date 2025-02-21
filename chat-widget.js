@@ -1,5 +1,7 @@
 /* chat-widget.js */
 (function() {
+    let sessionId = null;
+    
     // Server connection check function
     async function checkServerConnection() {
         try {
@@ -74,36 +76,58 @@
         
         const currentDomain = window.location.hostname;
         console.log("🌐 Sending message from domain:", currentDomain);
+        console.log("🔑 Current session ID:", sessionId);
         
         const loadingId = `loading-${Date.now()}`;
         chatMessages.innerHTML += `<div id="${loadingId}" style="text-align: left; color: gray;">Thinking...</div>`;
         
         try {
             console.log("📨 Making request to:", chatApiEndpoint);
+            const headers = {
+                "Content-Type": "application/json",
+                "X-Origin-Domain": currentDomain
+            };
+            
+            // Add session ID to headers if available
+            if (sessionId) {
+                headers["X-Session-ID"] = sessionId;
+            }
+            
             const response = await fetch(chatApiEndpoint, {
                 method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "X-Origin-Domain": currentDomain 
-                },
+                headers: headers,
                 body: JSON.stringify({ message: userMessage }),
                 credentials: 'omit',
                 mode: 'cors'
             });
-
+    
             console.log("📥 Response status:", response.status);
             
             if (!response.ok) {
                 throw new Error(`Server responded with status: ${response.status}`);
             }
-
+    
             const data = await response.json();
             console.log("📦 Response data:", data);
-
+    
+            // Store session ID if provided in response
+            if (data.session_id) {
+                sessionId = data.session_id;
+                console.log("🔑 New session ID received:", sessionId);
+            }
+    
             // Remove loading indicator
             const loadingElement = document.getElementById(loadingId);
             if (loadingElement) {
                 loadingElement.remove();
+            }
+            
+            // Don't display the session message if we have a session
+            if (sessionId && data.response === "Session started. Ask your question.") {
+                console.log("⏭️ Skipping session start message, sending question again...");
+                // Send the message again with the new session
+                sendMessage(chatMessages, inputField);
+                return;
             }
             
             // Display response
