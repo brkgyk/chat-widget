@@ -142,7 +142,7 @@
                     "X-Origin-Domain": currentDomain 
                 },
                 body: JSON.stringify({ message: userMessage }),
-                credentials: 'omit',  // Change to 'omit' instead of 'include'
+                credentials: 'include',  // Change to 'omit' instead of 'include'
                 mode: 'cors'
             })
             .then(response => {
