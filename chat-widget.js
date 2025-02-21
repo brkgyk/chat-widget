@@ -2,9 +2,8 @@
 (function() {
     // Dynamically determine the endpoint URL
     function getApiEndpoint() {
-        // Get the current script tag
         const scripts = document.getElementsByTagName('script');
-        const currentScript = scripts[scripts.length - 1]; 
+        const currentScript = scripts[scripts.length - 1];
         
         // Check if a data-api-url attribute is provided (highest priority)
         const dataApiUrl = currentScript.getAttribute('data-api-url');
@@ -14,7 +13,7 @@
         }
         
         // For GitHub Codespaces
-        if (window.location.hostname.includes('github.dev')) {
+        if (window.location.hostname.endsWith('.app.github.dev')) {
             return `https://${window.location.hostname}/chat`;
         }
         
@@ -22,6 +21,10 @@
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return 'http://localhost:8000/chat';
         }
+        
+        // For production (using GitHub Codespace URL)
+        return 'https://curly-adventure-q7447rx9g94qr-8000.app.github.dev/chat';
+    }
     
     // Default to relative path (works when widget is loaded from same domain as backend)
     return '/chat';
@@ -119,32 +122,32 @@
             }
         });
         
-        function sendMessage() {
-            let userMessage = inputField.value;
-            if (!userMessage.trim()) return;
-            
-            chatMessages.innerHTML += `<div style="text-align: right; color: blue;">${userMessage}</div>`;
-            inputField.value = "";
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            
-            // Get the current domain for tenant identification
-            const currentDomain = window.location.hostname;
-            console.log("Current domain:", currentDomain);
-            
-            // Display loading indicator
-            const loadingId = `loading-${Date.now()}`;
-            chatMessages.innerHTML += `<div id="${loadingId}" style="text-align: left; color: gray;">Thinking...</div>`;
-            
-            fetch(chatApiEndpoint, {
-                method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "X-Origin-Domain": currentDomain 
-                },
-                body: JSON.stringify({ message: userMessage }),
-                credentials: 'include',  // Change to 'omit' instead of 'include'
-                mode: 'cors'
-            })
+    function sendMessage() {
+        let userMessage = inputField.value;
+        if (!userMessage.trim()) return;
+        
+        chatMessages.innerHTML += `<div style="text-align: right; color: blue;">${userMessage}</div>`;
+        inputField.value = "";
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Get the current domain for tenant identification
+        const currentDomain = window.location.hostname;
+        console.log("Current domain:", currentDomain);
+        
+        // Display loading indicator
+        const loadingId = `loading-${Date.now()}`;
+        chatMessages.innerHTML += `<div id="${loadingId}" style="text-align: left; color: gray;">Thinking...</div>`;
+        
+        fetch(chatApiEndpoint, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "X-Origin-Domain": currentDomain 
+            },
+            body: JSON.stringify({ message: userMessage }),
+            credentials: 'omit',  // Change from 'include' to 'omit'
+            mode: 'cors'
+        })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Server responded with status: ${response.status}`);
