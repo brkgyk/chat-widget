@@ -1,94 +1,89 @@
-/* chat-widget.js */
+/* Unified Chat Widget - Works for Localhost & External Domains */
 (function() {
     let sessionId = null;
     
-    // Server connection check function
-    async function checkServerConnection() {
-        try {
-            const endpoint = getApiEndpoint();
-            console.log("🔄 Checking server connection at:", endpoint);
-            
-            const response = await fetch(`${endpoint}/history`, {
-                method: 'GET',
-                headers: {
-                    'X-Origin-Domain': window.location.hostname
-                },
-                credentials: 'omit',
-                mode: 'cors'
-            });
-            
-            if (!response.ok) {
-                console.error('❌ Server connection check failed:', response.status);
-                return false;
-            }
-            
-            console.log('✅ Server connection successful');
-            return true;
-        } catch (error) {
-            console.error('❌ Server connection check failed:', error);
-            return false;
-        }
-    }
-
-    // Dynamically determine the endpoint URL
+    // Dynamically determine the API endpoint
     function getApiEndpoint() {
-        const scripts = document.getElementsByTagName('script');
-        const currentScript = scripts[scripts.length - 1];
-        
-        // Check if a data-api-url attribute is provided (highest priority)
-        const dataApiUrl = currentScript.getAttribute('data-api-url');
-        if (dataApiUrl) {
-            console.log("🔗 Using data-api-url:", dataApiUrl);
-            return dataApiUrl;
-        }
-        
-        // For GitHub Codespaces
-        if (window.location.hostname.endsWith('.app.github.dev')) {
-            const url = `https://${window.location.hostname}/chat`;
-            console.log("🔗 Using GitHub Codespace URL:", url);
-            return url;
-        }
-        
-        // For local development
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.log("🔗 Using localhost URL");
-            return 'http://localhost:8000/chat';
-        }
-        
-        // For production (using GitHub Codespace URL)
-        const defaultUrl = 'https://curly-adventure-q7447rx9g94qr-8000.app.github.dev/chat';
-        console.log("🔗 Using default URL:", defaultUrl);
-        return defaultUrl;
+        return window.location.origin + "/chat";
     }
 
-    // Initialize the chat API endpoint
     const chatApiEndpoint = getApiEndpoint();
-    console.log("🚀 Initialized chat API endpoint:", chatApiEndpoint);
-
-    // Modified sendMessage function with async/await
-    async function sendMessage(chatMessages, inputField) {
-        let userMessage = inputField.value;
-        if (!userMessage.trim()) return;
+    console.log("🚀 Chat API endpoint:", chatApiEndpoint);
+    
+    // Create styles dynamically
+    const style = document.createElement("style");
+    style.innerHTML = `
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .chat-icon { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background-color: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); z-index: 10000; }
+        .chat-container { position: fixed; bottom: 80px; right: 20px; width: 320px; max-height: 400px; background-color: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); display: none; flex-direction: column; overflow: hidden; z-index: 10000; }
+        .chat-header { background-color: #007bff; color: white; padding: 10px; text-align: center; font-weight: bold; cursor: pointer; }
+        .chat-messages { flex: 1; height: 250px; overflow-y: auto; padding: 10px; border-bottom: 1px solid #ddd; }
+        .chat-input { display: flex; padding: 10px; background-color: #f1f1f1; }
+        .chat-input input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
+        .chat-input button { background-color: #007bff; color: white; border: none; padding: 8px 12px; margin-left: 5px; border-radius: 5px; cursor: pointer; }
+    `;
+    document.head.appendChild(style);
+    
+    // Chat UI Elements
+    let chatContainer, chatMessages, inputField;
+    
+    function createChatUI() {
+        chatContainer = document.createElement("div");
+        chatContainer.className = "chat-container";
+        document.body.appendChild(chatContainer);
         
-        chatMessages.innerHTML += `<div style="text-align: right; color: blue;">${userMessage}</div>`;
+        let chatHeader = document.createElement("div");
+        chatHeader.className = "chat-header";
+        chatHeader.innerHTML = "Chat with us ✖";
+        chatHeader.onclick = toggleChat;
+        chatContainer.appendChild(chatHeader);
+        
+        chatMessages = document.createElement("div");
+        chatMessages.className = "chat-messages";
+        chatContainer.appendChild(chatMessages);
+        
+        let chatInput = document.createElement("div");
+        chatInput.className = "chat-input";
+        
+        inputField = document.createElement("input");
+        inputField.type = "text";
+        inputField.placeholder = "Type your message...";
+        chatInput.appendChild(inputField);
+        
+        let sendButton = document.createElement("button");
+        sendButton.innerHTML = "Send";
+        sendButton.onclick = sendMessage;
+        chatInput.appendChild(sendButton);
+        
+        chatContainer.appendChild(chatInput);
+        
+        inputField.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+    }
+    
+    function toggleChat() {
+        chatContainer.style.display = chatContainer.style.display === "flex" ? "none" : "flex";
+        if (chatContainer.style.display === "flex") {
+            loadChatHistory();
+        }
+    }
+    
+    async function sendMessage() {
+        let userMessage = inputField.value.trim();
+        if (!userMessage) return;
+        
+        addMessage(userMessage, "user-message");
         inputField.value = "";
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        
-        const currentDomain = window.location.hostname;
-        console.log("🌐 Sending message from domain:", currentDomain);
-        console.log("🔑 Current session ID:", sessionId);
-        
-        const loadingId = `loading-${Date.now()}`;
-        chatMessages.innerHTML += `<div id="${loadingId}" style="text-align: left; color: gray;">Thinking...</div>`;
         
         try {
-            console.log("📨 Making request to:", chatApiEndpoint);
             const headers = {
                 "Content-Type": "application/json",
-                "X-Origin-Domain": currentDomain
+                "X-Origin-Domain": window.location.hostname
             };
             
-            // Add session ID to headers if available
             if (sessionId) {
                 headers["X-Session-ID"] = sessionId;
             }
@@ -97,169 +92,57 @@
                 method: "POST",
                 headers: headers,
                 body: JSON.stringify({ message: userMessage }),
-                credentials: 'omit',
                 mode: 'cors'
             });
-    
-            console.log("📥 Response status:", response.status);
             
-            if (!response.ok) {
-                throw new Error(`Server responded with status: ${response.status}`);
-            }
-    
             const data = await response.json();
-            console.log("📦 Response data:", data);
-    
-            // Store session ID if provided in response
+            
             if (data.session_id) {
                 sessionId = data.session_id;
-                console.log("🔑 New session ID received:", sessionId);
-            }
-    
-            // Remove loading indicator
-            const loadingElement = document.getElementById(loadingId);
-            if (loadingElement) {
-                loadingElement.remove();
             }
             
-            // Don't display the session message if we have a session
-            if (sessionId && data.response === "Session started. Ask your question.") {
-                console.log("⏭️ Skipping session start message, sending question again...");
-                // Send the message again with the new session
-                sendMessage(chatMessages, inputField);
-                return;
-            }
-            
-            // Display response
-            chatMessages.innerHTML += `<div style="text-align: left; color: black;">${data.response}</div>`;
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            addMessage(data.response, "bot-message");
         } catch (error) {
-            console.error("❌ Error in sendMessage:", error);
-            
-            // Remove loading indicator
-            const loadingElement = document.getElementById(loadingId);
-            if (loadingElement) {
-                loadingElement.remove();
-            }
-            
-            chatMessages.innerHTML += `<div style="text-align: left; color: red;">Connection error. Please try again later. (${error.message})</div>`;
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            addMessage("Connection error. Please try again later.", "bot-message");
         }
     }
-
-    function openChat() {
-        let chatWindow = document.createElement("div");
-        chatWindow.style.position = "fixed";
-        chatWindow.style.bottom = "80px";
-        chatWindow.style.right = "20px";
-        chatWindow.style.width = "320px";
-        chatWindow.style.maxHeight = "400px";
-        chatWindow.style.backgroundColor = "white";
-        chatWindow.style.borderRadius = "10px";
-        chatWindow.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-        chatWindow.style.overflow = "hidden";
-        chatWindow.style.display = "flex";
-        chatWindow.style.flexDirection = "column";
-        chatWindow.style.zIndex = "10000"; // Ensure chat window is on top
-
-        let chatHeader = document.createElement("div");
-        chatHeader.innerHTML = "Chat with us ✖";
-        chatHeader.style.backgroundColor = "#007bff";
-        chatHeader.style.color = "white";
-        chatHeader.style.padding = "10px";
-        chatHeader.style.textAlign = "center";
-        chatHeader.style.fontWeight = "bold";
-        chatHeader.style.cursor = "pointer";
-        chatHeader.onclick = function() {
-            document.body.removeChild(chatWindow);
-        };
-        chatWindow.appendChild(chatHeader);
-
-        let chatMessages = document.createElement("div");
-        chatMessages.id = "chatMessages";
-        chatMessages.style.flex = "1";
-        chatMessages.style.height = "250px";
-        chatMessages.style.overflowY = "auto";
-        chatMessages.style.padding = "10px";
-        chatMessages.style.borderBottom = "1px solid #ddd";
-        chatMessages.innerHTML = "<div>How can we help you?</div>";
-        chatWindow.appendChild(chatMessages);
-
-        let chatInput = document.createElement("div");
-        chatInput.style.display = "flex";
-        chatInput.style.padding = "10px";
-        chatInput.style.backgroundColor = "#f1f1f1";
-
-        let inputField = document.createElement("input");
-        inputField.type = "text";
-        inputField.placeholder = "Type your message...";
-        inputField.style.flex = "1";
-        inputField.style.padding = "5px";
-        inputField.style.border = "1px solid #ccc";
-        inputField.style.borderRadius = "5px";
-        chatInput.appendChild(inputField);
-
-        let sendButton = document.createElement("button");
-        sendButton.innerHTML = "Send";
-        sendButton.style.backgroundColor = "#007bff";
-        sendButton.style.color = "white";
-        sendButton.style.border = "none";
-        sendButton.style.padding = "5px 10px";
-        sendButton.style.marginLeft = "5px";
-        sendButton.style.borderRadius = "5px";
-        sendButton.style.cursor = "pointer";
-        
-        // Use bound function for consistent context
-        const boundSendMessage = () => sendMessage(chatMessages, inputField);
-        sendButton.onclick = boundSendMessage;
-        
-        // Handle Enter key
-        inputField.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                boundSendMessage();
+    
+    async function loadChatHistory() {
+        try {
+            const response = await fetch(`${chatApiEndpoint}/history`, {
+                headers: { "X-Origin-Domain": window.location.hostname },
+                mode: 'cors'
+            });
+            
+            const data = await response.json();
+            chatMessages.innerHTML = "";
+            
+            if (data.history) {
+                data.history.forEach(msg => {
+                    addMessage(msg.content, msg.role === "user" ? "user-message" : "bot-message");
+                });
             }
-        });
-        
-        chatInput.appendChild(sendButton);
-        chatWindow.appendChild(chatInput);
-        document.body.appendChild(chatWindow);
-    }
-
-    // Initialize chat with connection check
-    async function initializeChat() {
-        console.log("🔄 Initializing chat widget...");
-        const isServerConnected = await checkServerConnection();
-        
-        if (!isServerConnected) {
-            console.error("❌ Failed to initialize chat - server not reachable");
-            return;
+        } catch (error) {
+            console.error("Failed to load chat history:", error);
         }
-
-        console.log("✅ Server connection verified, creating chat icon");
+    }
+    
+    function addMessage(message, className) {
+        const msgElement = document.createElement("div");
+        msgElement.className = className;
+        msgElement.textContent = message;
+        chatMessages.appendChild(msgElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    function createChatIcon() {
         let chatIcon = document.createElement("div");
+        chatIcon.className = "chat-icon";
         chatIcon.innerHTML = "💬";
-        chatIcon.style.position = "fixed";
-        chatIcon.style.bottom = "20px";
-        chatIcon.style.right = "20px";
-        chatIcon.style.width = "60px";
-        chatIcon.style.height = "60px";
-        chatIcon.style.backgroundColor = "#007bff";
-        chatIcon.style.color = "white";
-        chatIcon.style.borderRadius = "50%";
-        chatIcon.style.display = "flex";
-        chatIcon.style.alignItems = "center";
-        chatIcon.style.justifyContent = "center";
-        chatIcon.style.cursor = "pointer";
-        chatIcon.style.fontSize = "24px";
-        chatIcon.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-        chatIcon.style.zIndex = "10000"; // Ensure chat icon is on top
-        chatIcon.onclick = openChat;
+        chatIcon.onclick = toggleChat;
         document.body.appendChild(chatIcon);
-        console.log("✅ Chat widget initialized successfully");
     }
-
-    // Start initialization
-    initializeChat().catch(error => {
-        console.error("❌ Failed to initialize chat widget:", error);
-    });
+    
+    createChatUI();
+    createChatIcon();
 })();
